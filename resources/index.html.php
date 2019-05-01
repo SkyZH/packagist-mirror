@@ -105,7 +105,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.17/moment-timezone-with-data-2012-2022.min.js"></script>
         <script>
             // set text of the command
-            document.getElementById('enablingStep').innerText = 'composer config -g repos.packagist composer '+ window.location.origin;
+            document.getElementById('enablingStep').innerText = 'composer config -g repos.packagist composer https://packagist.mirrors.sjtug.sjtu.edu.cn';
             document.getElementById('disablingStep').innerText = 'composer config -g --unset repos.packagist';
 
             new ClipboardJS('.ctclipboard');
