@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Webs\Mirror\Command;
 
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\Table;
 use Webs\Mirror\Provider;
@@ -52,6 +53,16 @@ class Create extends Base
     protected $clean;
 
     /**
+     * @var array
+     */
+    protected $latestErrorsShowed = [];
+
+    /**
+     * Errors before disable mirror
+     */
+    const ERROR_LIMIT = 100;
+
+    /**
      * {@inheritdoc}
      */
     public function __construct($name = '')
@@ -59,6 +70,20 @@ class Create extends Base
         parent::__construct('create');
         $this->setDescription(
             'Create/update packagist mirror'
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function configure()
+    {
+        parent::configure();
+        $this->addOption(
+            'no-clean',
+            null,
+            InputOption::VALUE_NONE,
+            "Don't search for deleted packages from metadata: php bin/mirror clean --help"
         );
     }
 
@@ -82,7 +107,9 @@ class Create extends Base
         $this->filesystem->move(self::DOT);
 
         // Clean
-        $this->setExitCode($this->clean->execute($input, $output));
+        if (!$this->input->getOption('no-clean')) {
+            $this->setExitCode($this->clean->execute($input, $output));
+        }
 
         if ($this->initialized) {
             $this->filesystem->delete(self::INIT);
@@ -138,6 +165,8 @@ class Create extends Base
             $this->moveToPublic();
         }
 
+        //usefull on dev frontend (move the frontend files every time):
+        //$this->moveToPublic();
         $this->initialized = $this->filesystem->hasFile(self::INIT);
 
         $newPackages = json_encode($this->providers, JSON_PRETTY_PRINT);
@@ -174,7 +203,9 @@ class Create extends Base
     {
         $from = getcwd().'/resources/public/';
         foreach (new \DirectoryIterator($from) as $fileInfo) {
-            if($fileInfo->isDot()) continue;
+            if ($fileInfo->isDot()) {
+                continue;
+            }
             $file = $fileInfo->getFilename();
             $to = $this->filesystem->getFullPath($file);
             copy($from.$file, $to);
@@ -188,11 +219,18 @@ class Create extends Base
      */
     protected function downloadProviders():Create
     {
+        $uri = $this->http->getBaseUri();
+
         $this->output->writeln(
-            'Loading providers from <info>'.$this->http->getBaseUri().'</>'
+            'Loading providers from <info>'.$uri.'</>'
         );
 
-        $this->providers = $this->provider->addFullPath(
+        if (!filter_var($uri, FILTER_VALIDATE_URL)) {
+            $this->output->writeln('<error>The main mirror url is invalid!</>');
+            return $this->setExitCode(1);
+        }
+
+        $this->providers = $this->provider->getPackagesJson(
             $this->package->getMainJson()
         );
 
@@ -205,13 +243,16 @@ class Create extends Base
 
         $this->progressBar->start(count($this->providerIncludes));
 
-        $success = function ($body, $path) {
+        $success = function($body, $path) {
             $this->provider->setDownloaded($path);
             $this->filesystem->write($path, $body);
         };
 
         $this->http->pool($generator, $success, $this->getClosureComplete());
         $this->progressBar->end();
+        if (!$this->progressBar->isDisabled()) {
+            $this->output->write(PHP_EOL);
+        }
         $this->showErrors();
 
         // If initialized can have provider downloaded by half
@@ -231,12 +272,11 @@ class Create extends Base
      */
     protected function showErrors():Create
     {
-        $errors = $this->http->getPoolErrors();
-
-        if (!$this->isVerbose() || empty($errors)) {
+        if (!$this->isDebug()) {
             return $this;
         }
 
+        $errors = $this->http->getPoolErrors();
         $rows = [];
         foreach ($errors as $path => $reason) {
             list('code' => $code, 'host' => $host, 'message' => $message) = $reason;
@@ -251,6 +291,10 @@ class Create extends Base
                 '<comment>'.$this->shortname($path).'</>',
                 '<error>'.$error.'</>',
             ];
+        }
+
+        if (!count($rows)) {
+            return $this;
         }
 
         $table = new Table($this->output);
@@ -269,8 +313,34 @@ class Create extends Base
         $mirrors = $this->http->getMirror()->toArray();
 
         foreach ($mirrors as $mirror) {
-            $total = $this->http->getTotalErrorByMirror($mirror);
-            if ($total < 1000) {
+            if (empty($mirror)) {
+                continue;
+            }
+            
+            $uri = parse_url($mirror);
+            $base = $uri['scheme'].'://'.$uri['host'];
+            $total = $this->http->getTotalErrorByMirror($base);
+
+            if (!isset($this->latestErrorsShowed[$base])) {
+                $this->latestErrorsShowed[$base] = 0;
+            }
+
+            # Errors before disable mirror
+            if ($total < self::ERROR_LIMIT) {
+                //print_r($this->isVeryVerbose());
+                if ($this->isVeryVerbose() && $total > 1) {
+                    //print_r($this->latestErrorsShowed);
+                    //print($base.PHP_EOL);
+                    if ($this->latestErrorsShowed[$base] == $total) {
+                        continue;
+                    }
+
+                    $this->latestErrorsShowed[$base] = $total;
+                    $softError = '<error>'.$total.' errors</> mirror <comment>';
+                    $softError = $softError.$mirror.'</>';
+                    $this->output->writeln($softError);
+                }
+                
                 continue;
             }
 
@@ -288,7 +358,7 @@ class Create extends Base
     }
 
     /**
-     * Download packages listed on provider-*.json on public/p dir.
+     * Download packages listed on provider-*.json on /p dir.
      *
      * @return Create
      */
@@ -316,6 +386,9 @@ class Create extends Base
             $this->progressBar->start(count($this->providerPackages));
             $this->poolPackages($generator);
             $this->progressBar->end();
+            if (!$this->progressBar->isDisabled()) {
+                $this->output->write(PHP_EOL);
+            }
             $this->showErrors()->disableDueErrors()->fallback();
         }
 
@@ -332,7 +405,7 @@ class Create extends Base
         $this->http->pool(
             $generator,
             // Success
-            function ($body, $path) {
+            function($body, $path) {
                 $this->filesystem->write($path, $body);
                 $this->package->setDownloaded($path);
             },
@@ -348,7 +421,7 @@ class Create extends Base
      */
     protected function getClosureComplete():Closure
     {
-        return function () {
+        return function() {
             $this->progressBar->progress();
         };
     }
@@ -378,6 +451,9 @@ class Create extends Base
         $this->progressBar->start($total);
         $this->poolPackages($generator);
         $this->progressBar->end();
+        if (!$this->progressBar->isDisabled()) {
+            $this->output->write(PHP_EOL);
+        }
         $this->showErrors();
 
         return $this;
@@ -395,11 +471,13 @@ class Create extends Base
         $maintainerProfile = getenv('MAINTAINER_PROFILE');
         $maintainerRepo = getenv('MAINTAINER_REPO');
         $maintainerLicense = getenv('MAINTAINER_LICENSE');
+        $since = getenv('SINCE');
         $tz = getenv('TZ');
         $synced = getenv('SLEEP');
         $googleAnalyticsId = getenv('GOOGLE_ANALYTICS_ID');
+        $googleAnalyticsMainId = getenv('GOOGLE_ANALYTICS_MAIN_ID');
         $file = $this->filesystem->getGzName('packages.json');
-        $exists = $this->filesystem->hasFile($file);
+        $exists = $this->filesystem->hasFile('index.html');
         $html = $this->filesystem->getFullPath('index.html');
 
         $lastModified = false;

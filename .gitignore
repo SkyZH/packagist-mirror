@@ -3,3 +3,6 @@ vendor
 legacy
 /.env
 cs_fixer*
+*.lock
+*.cache
+*.phar

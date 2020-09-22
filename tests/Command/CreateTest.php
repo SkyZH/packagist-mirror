@@ -41,7 +41,7 @@ class CreateTest extends TestCase
         $filesystem = new Filesystem($this->dir);
         $filesystem->setFilesystem($fly);
         $provider = new Provider;
-        $package = new Package;
+        $package = new Package(getenv('URI_PATTERN'));
 
         $progressBar = new ProgressBar;
 
@@ -71,6 +71,7 @@ class CreateTest extends TestCase
         $definition = new InputDefinition(array(
             new InputOption('no-progress', null, InputOption::VALUE_NONE),
             new InputOption('no-ansi', null, InputOption::VALUE_NONE),
+            new InputOption('no-clean', null, InputOption::VALUE_NONE),
         ));
 
         $input = new ArrayInput(array());

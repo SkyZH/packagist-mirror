@@ -45,9 +45,22 @@ class Package
     protected $mainJson;
 
     /**
+     * @var $uriPattern
+     */
+    protected $uriPattern;
+
+    /**
      * Main files.
      */
     const MAIN = Base::MAIN;
+
+    /**
+     * @param string $uriPattern Pattern to find the package json files.
+     */
+    public function __construct($uriPattern)
+    {
+        $this->uriPattern = $uriPattern;
+    }
 
     /**
      * Add a http.
@@ -121,7 +134,7 @@ class Package
     }
 
     /**
-     * @param stdClass $providers
+     * @param stdClass $providers List of individual packages as a list
      *
      * @return array
      */
@@ -129,7 +142,7 @@ class Package
     {
         $providerPackages = [];
         foreach ($providers as $name => $hash) {
-            $uri = sprintf('p/%s$%s.json', $name, $hash->sha256);
+            $uri = sprintf($this->uriPattern, $name, $hash->sha256);
             $providerPackages[$uri] = $hash->sha256;
         }
 
@@ -137,7 +150,7 @@ class Package
     }
 
     /**
-     * @param string $uri
+     * @param string $uri URL to individual providers list packages
      *
      * @return array
      */

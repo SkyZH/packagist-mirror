@@ -160,6 +160,9 @@ class Clean extends Base
             $this->progressBar->start(count($list));
             $this->flushPackage(array_keys($list));
             $this->progressBar->end();
+            if (!$this->progressBar->isDisabled()) {
+                $this->output->write(PHP_EOL);
+            }
             $this->showRemoved();
         }
 

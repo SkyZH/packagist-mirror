@@ -79,12 +79,24 @@ class Base extends Command
     /**
      * @var bool
      */
+    protected $verbose = false;
+
+    /**
+     * @var bool
+     */
     protected $verboseVerbose = false;
+
+    /**
+     * @var bool
+     */
+    protected $verboseDebug = false;
 
     /**
      * @var int
      */
-    const VV = OutputInterface::VERBOSITY_VERBOSE;
+    const V = OutputInterface::VERBOSITY_VERBOSE;
+    const VV = OutputInterface::VERBOSITY_VERY_VERBOSE;
+    const VVV = OutputInterface::VERBOSITY_DEBUG;
 
     /**
      * Main files.
@@ -114,7 +126,9 @@ class Base extends Command
     {
         $this->input = $input;
         $this->output = $output;
-        $this->verboseVerbose = $this->output->getVerbosity() >= self::VV;
+        $this->verbose = $this->output->getVerbosity() == self::V;
+        $this->verboseVerbose = $this->output->getVerbosity() == self::VV;
+        $this->verboseDebug = $this->output->getVerbosity() == self::VVV;
     }
 
     /**
@@ -140,7 +154,23 @@ class Base extends Command
      */
     public function isVerbose():bool
     {
-        return $this->verboseVerbose;
+        return $this->verbose || $this->isVeryVerbose();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isVeryVerbose():bool
+    {
+        return $this->verboseVerbose || $this->isDebug();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDebug():bool
+    {
+        return $this->verboseDebug;
     }
 
     /**

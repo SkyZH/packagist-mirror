@@ -31,8 +31,9 @@ if (!file_exists('.env')) {
 }
 
 // Load env
-$dotenv = new Dotenv\Dotenv(getcwd());
-$dotenv->load();
+$adapter = [new Dotenv\Repository\Adapter\EnvConstAdapter()];
+$repository = Dotenv\Repository\RepositoryBuilder::create()->withReaders($adapter)->immutable()->make();
+Dotenv\Dotenv::create($repository, getcwd(), null)->load();
 
 date_default_timezone_set(getenv('TZ'));
 
@@ -48,7 +49,7 @@ $cli = new Symfony\Component\Console\Application(
 
 $filesystem = new Webs\Mirror\Filesystem(getenv('PUBLIC_DIR'));
 $provider = new Webs\Mirror\Provider;
-$package = new Webs\Mirror\Package;
+$package = new Webs\Mirror\Package(getenv('URI_PATTERN'));
 $progressBar = new Webs\Mirror\ProgressBar;
 
 $mirror = new Webs\Mirror\Mirror(

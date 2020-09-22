@@ -5,10 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
         <title>Packagist Mirror</title>
 
-        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="shortcut icon" href="./favicon.ico" />
 
         <link rel="stylesheet" href="https://google-fonts.mirrors.sjtug.sjtu.edu.cn/css?family=Roboto:300,300italic,700,700italic" />
-        <link href="https://cdn.bootcss.com/mini.css/2.3.7/mini-default.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.bootcss.com/mini.css/2.3.7/mini-default.min.css" />
+        <link rel="author" href="https://github.com/Webysther/packagist-mirror"/>
         <style>
             body { font-family: 'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif; }
             .title { text-align: center}
@@ -37,10 +38,9 @@
             }
         </style>
 
-
-        <?php if(!empty($googleAnalyticsId)) {?>
+        <?php if (!empty($googleAnalyticsMainId) || !empty($googleAnalyticsId)) {?>
         <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=<?=$googleAnalyticsId?>"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=<?=$googleAnalyticsMainId ?: $googleAnalyticsId?>"></script>
         <script>
             window.dataLayer = window.dataLayer || [];
 
@@ -49,7 +49,14 @@
             }
 
             gtag('js', new Date());
+
+            <?php if (!empty($googleAnalyticsMainId)) {?>
+            gtag('config', '<?=$googleAnalyticsMainId?>');
+            <?php }?>
+
+            <?php if (!empty($googleAnalyticsId)) {?>
             gtag('config', '<?=$googleAnalyticsId?>');
+            <?php }?>
         </script>
         <?php }?>
 
@@ -61,13 +68,20 @@
                     <div class="title">
                         <h1>
                             Packagist Mirror
-                            <img src="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.1.0/flags/4x3/<?= $countryCode; ?>.svg"
+                            <img src="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.4.3/flags/4x3/<?= $countryCode; ?>.svg"
                                     title="<?= $countryName; ?>"
                                     alt="<?= $countryName; ?>"
                                     class="img-valign"
                                     />
                         </h1>
-                        <p><span id="lastsynced" ></span><br>(Synchronized every <?= $synced ?> seconds)</p>
+                        <p>
+                            <?= $tz; ?>
+                            <br>
+                            <span id="lastsynced" ></span>
+                            <br>
+                            <?php if ($synced > 0) {?>(Synchronized every <?= $synced ?> seconds)<?php }?>
+                            <?php if ($synced == 0) {?>(Synchronized continuously)<?php }?>
+                        </p>
                     </div>
                     <p>
                         This is PHP package repository Packagist.org mirror site.
@@ -86,7 +100,7 @@
                         <div>
                             <p class="bash" >
                                 $ <span id="enablingStep"></span>
-                                <button class="small tertiary ctclipboard" data-clipboard-target="#enablingStep"><img class="clippy" width="13" src="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/svg/clippy.svg" alt="Copy to clipboard"> Copy</button>
+                                <button class="small tertiary ctclipboard" data-clipboard-target="#enablingStep"><img class="clippy" width="13" src="https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/clippy.svg" alt="Copy to clipboard"> Copy</button>
                             </p>
                         </div>
                         <input type="radio" name="accordion" id="disable"aria-hidden="true">
@@ -94,14 +108,27 @@
                         <div>
                             <p class="bash" >
                                 $ <span id="disablingStep"></span>
-                                <button class="small tertiary ctclipboard" data-clipboard-target="#disablingStep"><img class="clippy" width="13" src="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/svg/clippy.svg" alt="Copy to clipboard"> Copy</button>
+                                <button class="small tertiary ctclipboard" data-clipboard-target="#disablingStep"><img class="clippy" width="13" src="https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/clippy.svg" alt="Copy to clipboard"> Copy</button>
                             </p>
                         </div>
                     </div>
 
+                    <h2>World Map of all mirrors</h2>
+                        <p>
+                            All mirrors, the colors represent <a href="https://packagist.com.br/network.svg" target="_blank">the topology</a> drawn here. Check <a href="https://status.packagist.com.br" target="_blank">status page</a> for health mirror's.
+                        </p>
+                        <a href="https://packagist.com.br/world_map.svg" target="_blank">
+                            <center>
+                                <img
+                                src="https://packagist.com.br/world_map.svg"
+                                alt="World Map with all mirrors"
+                                width="80%" />
+                            </center>
+                        </a>
+
                     <h2>Disclaimer</h2>
                     <p>This site offers its services free of charge and only as a mirror site.</p>
-                    <p>This site only provides package information / metadata with no distribution file of the packages. All packages metadata files are mirrored from <a href="https://packagist.org" target="_blank">Packagist.org</a>. We do not modify and/or process the JSON files. If there is something wrong, please disable the setting the Disable command above and try to refer to the original packagist.org.</p>
+                    <p>This site only provides package information / metadata with no distribution file of the packages. All packages metadata files are mirrored from <a href="https://packagist.org/mirrors" target="_blank">packagist.org</a>. We do not modify and/or process the JSON files. If there is something wrong, please disable the setting the Disable command above and try to refer to the original packagist.org.</p>
                 </div>
             </div>
         </div>
@@ -117,13 +144,14 @@
                 </p>
             </div>
         </footer>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment-with-locales.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.17/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.26/moment-timezone-with-data-2012-2022.min.js"></script>
         <script>
             // set text of the command
             document.getElementById('enablingStep').innerText = 'composer config -g repos.packagist composer https://packagist.mirrors.sjtug.sjtu.edu.cn';
             document.getElementById('disablingStep').innerText = 'composer config -g --unset repos.packagist';
+            var lastsynced = document.getElementById('lastsynced');
 
             new ClipboardJS('.ctclipboard');
 
@@ -134,18 +162,20 @@
                     req.onload = function (e) {
                         var responseHeader = req.getResponseHeader(wch);
                         var actual = moment.tz(responseHeader, '<?=$tz; ?>');
-                        var format = 'YYYY/MM/D HH:mm:ss ZZ';
-                        var lastsynced = document.getElementById('lastsynced');
+                        var format = 'YYYY-MM-DD HH:mm:ss ZZ';
                         lastsynced.innerText = 'Last sync: '+actual.format(format);
                     };
                     req.send(null);
                 } catch(er) {}
             }
 
-            fetchHeader(location.href,'Last-Modified');
-            setInterval(function(){
+            if(location.hostname !== ''){
                 fetchHeader(location.href,'Last-Modified');
-            }, (<?=$synced ?>000));
+                setInterval(function(){
+                    fetchHeader(location.href,'Last-Modified');
+                }, (<?=$synced ?>000+1000));
+            }
         </script>
+        <!-- Since: <?=$since ?> -->
     </body>
 </html>

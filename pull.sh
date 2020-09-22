@@ -24,7 +24,13 @@ MAINTAINER_REPO='https://github.com/sjtug/packagist-mirror'
 MAINTAINER_LICENSE='MIT License'
 
 # Main mirror used to get providers
+# Official - https://repo.packagist.org
+# UK - https://repo-eu-uk-1.packagist.org
 MAIN_MIRROR=https://repo.packagist.org
+
+# Pattern to generate the package URIs.
+# I.E. packages.drupal.org uses: URI_PATTERN='%s$%s.json'
+URI_PATTERN='p/%s$%s.json'
 
 # Timezone
 TZ='Asia/Shanghai'
@@ -39,9 +45,14 @@ TZ='Asia/Shanghai'
 # South America, Brazil - https://packagist.com.br
 DATA_MIRROR=$LUG_upstream
 
+# URI of your mirror
+URL=packagist.com.br
+
+# Since your mirror exists
+SINCE="Q2'19"
+
 # Max connections by mirror
 MAX_CONNECTIONS=25
-
 
 # Google Analytics
 GOOGLE_ANALYTICS_ID=
